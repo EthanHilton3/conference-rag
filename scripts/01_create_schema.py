@@ -127,6 +127,24 @@ AS $$
   ORDER BY sentence_embeddings.embedding <=> query_embedding
   LIMIT match_count;
 $$;
+
+-- ============================================
+-- GRANTs (lock 1): which roles may touch each table at all.
+-- This project has "Automatically expose new tables" turned OFF, so nothing
+-- is granted by default. RLS policies (lock 2) then filter rows.
+-- ============================================
+
+-- sentence_embeddings: logged-in users read; only the service role (scripts) writes
+GRANT SELECT ON sentence_embeddings TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON sentence_embeddings TO service_role;
+
+-- page_views: anyone may read and insert (public counter)
+GRANT SELECT, INSERT ON page_views TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON page_views TO service_role;
+
+-- match_sentences: Postgres lets PUBLIC execute new functions by default; restrict it
+REVOKE EXECUTE ON FUNCTION match_sentences(vector, int) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION match_sentences(vector, int) TO authenticated, service_role;
 """
 
     url = f"https://api.supabase.com/v1/projects/{SUPABASE_PROJECT_REF}/database/query"
