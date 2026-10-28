@@ -59,8 +59,13 @@ CREATE TABLE IF NOT EXISTS sentence_embeddings (
 );
 
 -- Create index for talk_id grouping
-CREATE INDEX IF NOT EXISTS sentence_embeddings_talk_id_idx 
+CREATE INDEX IF NOT EXISTS sentence_embeddings_talk_id_idx
 ON sentence_embeddings(talk_id);
+
+-- HNSW index for vector search. Without it every search scans all rows
+-- (~26s at 26k rows, past the 8s timeout); with it ~4ms. See scripts/index_experiment.py.
+CREATE INDEX IF NOT EXISTS sentence_embeddings_embedding_hnsw
+ON sentence_embeddings USING hnsw (embedding vector_cosine_ops);
 
 -- Enable Row Level Security
 ALTER TABLE sentence_embeddings ENABLE ROW LEVEL SECURITY;
